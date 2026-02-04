@@ -2,6 +2,8 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.ext.declarative import declarative_base
 
+from data import password_base
+
 SQLALCHEMY_DATABASE_URL = f"postgresql://postgres:{password_base}@localhost:5432/SpendTracker"
 
 engine = create_engine(
@@ -16,3 +18,5 @@ SessionLocal = sessionmaker(
     autoflush=False,
     bind=engine
 )
+
+Base = declarative_base()
