@@ -76,5 +76,27 @@ def balance(message):
             return
         bot.send_message(message.chat.id, f"Текущий баланс: {user.current_balance}")
 
+@bot.message_handler(commands=['set_budget'])
+def set_budget(message):
+    telegram_id = message.from_user.id
+    budget = message.text.split()[-1]
+
+    for i in budget:
+        if i.isalpha():
+            bot.send_message(message.chat.id, "Я не знаю ваш месячный баланс, введите команду /add_balance")
+            return
+
+    with SessionLocal() as db:
+        user = db.query(UserModel).filter(UserModel.telegram_id == telegram_id).first()
+        if not user:
+            bot.send_message(message.chat.id, "Я вас не знаю, введите команду /start")
+        user.money_per_month = int(budget)
+        db.commit()
+        db.refresh(user)
+        bot.send_message(message.chat.id, "Я сохранил ваш баланс.")
+
+
+
+
 
 bot.infinity_polling(timeout=60, long_polling_timeout=60)
