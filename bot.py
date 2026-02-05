@@ -35,7 +35,8 @@ def send_welcome(message):
 def help_info(message):
     bot.send_message(message.chat.id, "/start - запустить бота\n"
                                             "/help - показать список команд\n"
-                                            "/add_balance Сумма - добавить сумму к текущему балансу"
+                                            "/add_balance Сумма - добавить сумму к текущему балансу\n"
+                                            "/balance - текущий баланс"
                                                                                 )
 
 
@@ -61,6 +62,19 @@ def add_balance(message):
         db.commit()
         db.refresh(user)
         bot.send_message(message.chat.id, f"Ваш баланс пополнен. Сейчас у вас {user.current_balance}")
+
+@bot.message_handler(commands=['balance'])
+def balance(message):
+    telegram_id = message.from_user.id
+    with SessionLocal() as db:
+        user = db.query(UserModel).filter(UserModel.telegram_id == telegram_id).first()
+        if not user:
+            bot.send_message(message.chat.id, "Я вас не знаю, введите команду /start")
+            return
+        if user.current_balance is None:
+            bot.send_message(message.chat.id, "Я не знаю ваш баланс, введите команду /add_balance")
+            return
+        bot.send_message(message.chat.id, f"Текущий баланс: {user.current_balance}")
 
 
 bot.infinity_polling(timeout=60, long_polling_timeout=60)
