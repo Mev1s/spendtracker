@@ -33,10 +33,11 @@ def send_welcome(message):
 
 @bot.message_handler(commands=['help'])
 def help_info(message):
-    bot.send_message(message.chat.id, "/start - запустить бота\n"
-                                            "/help - показать список команд\n"
-                                            "/add_balance Сумма - добавить сумму к текущему балансу\n"
-                                            "/balance - текущий баланс"
+    bot.send_message(message.chat.id, "🤖 /start - запустить бота\n"
+                                            "📖/help - показать список команд\n"
+                                            "💰/add_balance Сумма - добавить сумму к текущему балансу\n"
+                                            "💰/balance - текущий баланс\n"
+                                            "💰/set_budget Сумма - сохранить ваш месячный доход"
                                                                                 )
 
 
@@ -83,17 +84,18 @@ def set_budget(message):
 
     for i in budget:
         if i.isalpha():
-            bot.send_message(message.chat.id, "Я не знаю ваш месячный баланс, введите команду /add_balance")
+            bot.send_message(message.chat.id, "Не правильный ввод, попробуйте снова")
             return
 
     with SessionLocal() as db:
         user = db.query(UserModel).filter(UserModel.telegram_id == telegram_id).first()
         if not user:
             bot.send_message(message.chat.id, "Я вас не знаю, введите команду /start")
+            return
         user.money_per_month = int(budget)
         db.commit()
         db.refresh(user)
-        bot.send_message(message.chat.id, "Я сохранил ваш баланс.")
+        bot.send_message(message.chat.id, "Я сохранил ваш баланс. Если что-то измениться, напишите команду сново.")
 
 
 
