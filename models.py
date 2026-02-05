@@ -3,18 +3,18 @@ from sqlalchemy.sql import func
 from database import Base
 
 class User(Base):
-    __tablename__ = 'user'
+    __tablename__ = 'users'
     id = Column(Integer, primary_key=True)
     username = Column(String, unique=True)
     telegram_id = Column(BigInteger, unique=True)
     money_per_month = Column(Integer, default=None)
-    currency = Column(Integer, default=None)
+    current_balance = Column(Integer, default=None)
 
 class Categories(Base):
     __tablename__ = 'categories'
 
     id = Column(Integer, primary_key=True)
-    user_id = Column(Integer, ForeignKey('user.id'))
+    user_id = Column(Integer, ForeignKey('users.id'))
 
     hcs = Column(Integer, default=0) # ЖКХ
     food = Column(Integer, default=0)
@@ -30,7 +30,7 @@ class Goals(Base):
     __tablename__ = 'goals'
 
     id = Column(Integer, primary_key=True)
-    user_id = Column(Integer, ForeignKey('user.id'))
+    user_id = Column(Integer, ForeignKey('users.id'))
 
     target = Column(Integer, default=0)
     currency_for_target = Column(Integer, default=0)

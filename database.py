@@ -4,7 +4,7 @@ from sqlalchemy.ext.declarative import declarative_base
 
 from data import password_base
 
-SQLALCHEMY_DATABASE_URL = f"postgresql://postgres:{password_base}@localhost:5432/SpendTracker"
+SQLALCHEMY_DATABASE_URL = f"postgresql://postgres:{password_base}@localhost:5432/spendtracker"
 
 engine = create_engine(
     SQLALCHEMY_DATABASE_URL,
