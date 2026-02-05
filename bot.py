@@ -31,5 +31,13 @@ def send_welcome(message):
 
             bot.send_message(message.chat.id, message_text)
 
+@bot.message_handler(commands=['help'])
+def help_info(message):
+    bot.send_message(message.chat.id, "/start - запустить бота\n"
+                                            "/help - показать список команд\n"
+                                                                                )
+
+
+
 
 bot.infinity_polling()
