@@ -37,7 +37,8 @@ def help_info(message):
                                             "📖/help - показать список команд\n"
                                             "💰/add_balance Сумма - добавить сумму к текущему балансу\n"
                                             "💰/balance - текущий баланс\n"
-                                            "💰/set_budget Сумма - сохранить ваш месячный доход"
+                                            "💰/set_budget Сумма - сохранить ваш месячный доход\n"
+                                            "💰/remove_balance Сумма - отнимает от вашего баланса сумму"
                                                                                 )
 
 
@@ -48,33 +49,70 @@ def add_balance(message):
 
     for i in money:
         if i.isalpha():
-            bot.send_message(message.chat.id, "Не правильный ввод, попробуйте сново")
+            bot.send_message(message.chat.id, "❌ Не правильный ввод, попробуйте сново")
             return
 
     with SessionLocal() as db:
         user = db.query(UserModel).filter(UserModel.telegram_id == telegram_id).first()
+
         if not user:
-            bot.send_message(message.chat.id, "Сначало напишите команду /start")
+            bot.send_message(message.chat.id, "❌ Сначало напишите команду /start")
             return
+
         if not user.current_balance:
             user.current_balance = int(money)
         else:
             user.current_balance += int(money)
+
         db.commit()
         db.refresh(user)
-        bot.send_message(message.chat.id, f"Ваш баланс пополнен. Сейчас у вас {user.current_balance}")
+
+        bot.send_message(message.chat.id, f"✅ Ваш баланс пополнен. Сейчас у вас {user.current_balance}")
+
+@bot.message_handler(commands=['remove_balance'])
+def remove_balance(message):
+    telegram_id = message.from_user.id
+    money = message.text.split()[-1]
+
+    for i in money:
+        if i.isalpha():
+            bot.send_message(message.chat.id, "❌ Не правильный ввод, попробуйте сново")
+            return
+
+    with SessionLocal() as db:
+        user = db.query(UserModel).filter(UserModel.telegram_id == telegram_id).first()
+
+        if not user:
+            bot.send_message(message.chat.id, "❌ Сначало напишите команду /start")
+            return
+
+        if not user.current_balance:
+            bot.send_message(message.chat.id, "❌ Ваш баланс и так на 0")
+            return
+
+        if user.current_balance - int(money) < 0:
+            bot.send_message(message.chat.id, "❌ Баланс не может быть отрицательным")
+            return
+
+        user.current_balance -= int(money)
+        db.commit()
+        db.refresh(user)
+        bot.send_message(message.chat.id, f"Ваш баланс уменьшен на {money}")
 
 @bot.message_handler(commands=['balance'])
 def balance(message):
     telegram_id = message.from_user.id
     with SessionLocal() as db:
         user = db.query(UserModel).filter(UserModel.telegram_id == telegram_id).first()
+
         if not user:
-            bot.send_message(message.chat.id, "Я вас не знаю, введите команду /start")
+            bot.send_message(message.chat.id, "❌ Я вас не знаю, введите команду /start")
             return
+
         if user.current_balance is None:
-            bot.send_message(message.chat.id, "Я не знаю ваш баланс, введите команду /add_balance")
+            bot.send_message(message.chat.id, "❌ Я не знаю ваш баланс, введите команду /add_balance")
             return
+
         bot.send_message(message.chat.id, f"Текущий баланс: {user.current_balance}")
 
 @bot.message_handler(commands=['set_budget'])
@@ -84,18 +122,18 @@ def set_budget(message):
 
     for i in budget:
         if i.isalpha():
-            bot.send_message(message.chat.id, "Не правильный ввод, попробуйте снова")
+            bot.send_message(message.chat.id, "❌ Не правильный ввод, попробуйте снова")
             return
 
     with SessionLocal() as db:
         user = db.query(UserModel).filter(UserModel.telegram_id == telegram_id).first()
         if not user:
-            bot.send_message(message.chat.id, "Я вас не знаю, введите команду /start")
+            bot.send_message(message.chat.id, "❌ Я вас не знаю, введите команду /start")
             return
         user.money_per_month = int(budget)
         db.commit()
         db.refresh(user)
-        bot.send_message(message.chat.id, "Я сохранил ваш баланс. Если что-то измениться, напишите команду сново.")
+        bot.send_message(message.chat.id, "✅ Я сохранил ваш баланс. Если что-то измениться, напишите команду сново.")
 
 
 
