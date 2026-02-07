@@ -1,8 +1,10 @@
 import telebot
+from unicodedata import category
+
 from database import engine, SessionLocal, Base
 from sqlalchemy.orm import Session
 from data import bot_token
-from models import User as UserModel
+from models import User as UserModel, Categories as CategoriesModel
 
 def get_db(): # enter to db
     db = SessionLocal()
@@ -97,7 +99,7 @@ def remove_balance(message):
         user.current_balance -= int(money)
         db.commit()
         db.refresh(user)
-        bot.send_message(message.chat.id, f"Ваш баланс уменьшен на {money}")
+        bot.send_message(message.chat.id, f"✅ Ваш баланс уменьшен на {money}")
 
 @bot.message_handler(commands=['balance'])
 def balance(message):
@@ -135,6 +137,44 @@ def set_budget(message):
         db.refresh(user)
         bot.send_message(message.chat.id, "✅ Я сохранил ваш баланс. Если что-то измениться, напишите команду сново.")
 
+@bot.message_handler(commands=['expense'])
+def expense(message):
+    categoryes = {"жкх": "hcs", "еда": "food", "транспорт": "transport", "здоровье": "pharmacy", "кредит": "credits",
+                  "развлечения": "fun", "одежда": "cloth", "подушка": "financial_cushion"}
+
+    telegram_id = message.from_user.id
+    money = message.text.split()[1]
+    category = message.text.split()[-1]
+
+    for i in money:
+        if i.isalpha():
+            bot.send_message(message.chat.id, "❌ Не правильный ввод, попробуйте снова")
+            return
+
+    if category.lower() not in categoryes:
+        bot.send_message(message.chat.id, "❌ Такой категории нету")
+        return
+
+    col = categoryes[category.lower()]
+
+    with SessionLocal() as db:
+        user = db.query(UserModel).filter(UserModel.telegram_id == telegram_id).first()
+
+        if not user:
+            bot.send_message(message.chat.id, "❌ Я вас не знаю, введите команду /start")
+            return
+
+        if user.current_balance - int(money) < 0:
+            bot.send_message(message.chat.id, "❌ Ваш баланс сейчас ниже траты")
+            return
+
+        new_expense = CategoriesModel(user_id=user.id)
+        setattr(new_expense, col, int(money))
+        user.current_balance -= int(money)
+        db.add(new_expense)
+        db.commit()
+        db.refresh(user)
+        bot.send_message(message.chat.id, "✅ Трата сохранена")
 
 
 
