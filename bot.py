@@ -3,8 +3,10 @@ from unicodedata import category
 
 from database import engine, SessionLocal, Base
 from sqlalchemy.orm import Session
+from sqlalchemy.sql import func
 from data import bot_token
 from models import User as UserModel, Categories as CategoriesModel
+from datetime import date, datetime
 
 def get_db(): # enter to db
     db = SessionLocal()
@@ -16,6 +18,9 @@ def get_db(): # enter to db
 Base.metadata.create_all(bind=engine)
 
 bot = telebot.TeleBot(bot_token, parse_mode=None)
+
+categoryes = {"жкх": "hcs", "еда": "food", "транспорт": "transport", "здоровье": "pharmacy", "кредит": "credits",
+                  "развлечения": "fun", "одежда": "cloth", "подушка": "financial_cushion"}
 
 @bot.message_handler(commands=['start'])
 def send_welcome(message):
@@ -147,9 +152,6 @@ def set_budget(message):
 
 @bot.message_handler(commands=['expense'])
 def expense(message):
-    categoryes = {"жкх": "hcs", "еда": "food", "транспорт": "transport", "здоровье": "pharmacy", "кредит": "credits",
-                  "развлечения": "fun", "одежда": "cloth", "подушка": "financial_cushion"}
-
     telegram_id = message.from_user.id
     money = message.text.split()[1]
     category = message.text.split()[-1]
@@ -183,6 +185,59 @@ def expense(message):
         db.commit()
         db.refresh(user)
         bot.send_message(message.chat.id, "✅ Трата сохранена")
+
+@bot.message_handler(commands=['remove_expense'])
+def remove_expense(message):
+    telegram_id = message.from_user.id
+    exp_date = message.text.split()[1]
+    category = message.text.split()[2]
+    money = message.text.split()[-1]
+
+    year = exp_date.split("-")[-1]
+    month = exp_date.split("-")[1]
+    day = exp_date.split("-")[0]
+
+    target_date = datetime(int(year), int(month), int(day)).date()
+
+    for i in money:
+        if i.isalpha():
+            bot.send_message(message.chat.id, "❌ не верно указана сумма")
+            return
+
+    if category.lower() not in categoryes:
+        bot.send_message(message.chat.id, "❌ я не знаю такой категории")
+        return
+
+    with SessionLocal() as db:
+        user = db.query(UserModel).filter(UserModel.telegram_id == telegram_id).first()
+
+        if not user:
+            bot.send_message("❌ Я вас не знаю, введите команду /start")
+            return
+
+        expense = db.query(CategoriesModel).filter(
+            CategoriesModel.user_id == user.id,
+            getattr(CategoriesModel, categoryes[category.lower()]) == int(money),
+            func.date(CategoriesModel.date) == target_date
+        ).first()
+
+        if not expense:
+            bot.send_message(message.chat.id, "❌ Такой траты нету")
+            return
+
+        user.current_balance += int(money)
+        db.delete(expense)
+        db.commit()
+        db.refresh(user)
+
+    bot.send_message(message.chat.id, "✅ Трата была удалена")
+
+
+
+
+
+
+
 
 
 
