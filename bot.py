@@ -1,3 +1,5 @@
+import time
+from telebot.apihelper import ApiException
 import telebot
 from unicodedata import category
 
@@ -5,7 +7,7 @@ from database import engine, SessionLocal, Base
 from sqlalchemy.orm import Session
 from sqlalchemy.sql import func
 from data import bot_token
-from models import User as UserModel, Categories as CategoriesModel
+from models import User as UserModel, Categories as CategoriesModel, Goals as GoalsModel
 from datetime import date, datetime
 
 def get_db(): # enter to db
@@ -20,7 +22,7 @@ Base.metadata.create_all(bind=engine)
 bot = telebot.TeleBot(bot_token, parse_mode=None)
 
 categoryes = {"жкх": "hcs", "еда": "food", "транспорт": "transport", "здоровье": "pharmacy", "кредит": "credits",
-                  "развлечения": "fun", "одежда": "cloth", "подушка": "financial_cushion"}
+                  "развлечения": "fun", "одежда": "cloth", "подушка": "financial_cushion", "цель": "target"}
 
 @bot.message_handler(commands=['start'])
 def send_welcome(message):
@@ -47,13 +49,15 @@ def help_info(message):
                                             "💰/set_budget Сумма - сохранить ваш месячный доход\n"
                                             "💰/remove_balance Сумма - отнимает от вашего баланса сумму\n"
                                             "💰/expense Сумма Категория - сохраняет вашу трату\n"
-                                            "📖/help_category - отобразит все категории"
+                                            "💰/remove_expense dd-mm-yyyy Категория Сумма - удалит трату по указаным параметрам\n"
+                                            "🎯/goal dd-mm-yyyy Цель Сумма - создаст цель для которой копите деньги\n"
+                                            "📖/help_category - отобразит все категории\n"
                                                                                 )
 
 @bot.message_handler(commands=['help_category'])
 def help_category(message):
     bot.send_message(message.chat.id, "🏠 ЖКХ\n🍔 Еда\n🚗 Транспорт\n💊 Здоровье"
-                                           "\n💳 Кредит\n🎭 Развлечения\n👕 Одежда\n💰 Подушка")
+                                           "\n💳 Кредит\n🎭 Развлечения\n👕 Одежда\n💰 Подушка\n🎯 Цель")
 
 
 
@@ -152,6 +156,11 @@ def set_budget(message):
 
 @bot.message_handler(commands=['expense'])
 def expense(message):
+
+    if len(message.text.split()) <= 1:
+        bot.send_message(message.chat.id, "❌ Не правильный ввод, попробуйте снова")
+        return
+
     telegram_id = message.from_user.id
     money = message.text.split()[1]
     category = message.text.split()[-1]
@@ -174,9 +183,20 @@ def expense(message):
             bot.send_message(message.chat.id, "❌ Я вас не знаю, введите команду /start")
             return
 
+        if user.current_balance is None:
+            bot.send_message(message.chat.id, "❌ У вас не задан баланс")
+            return
+
         if user.current_balance - int(money) < 0:
             bot.send_message(message.chat.id, "❌ Ваш баланс сейчас ниже траты")
             return
+
+        if col == "target":
+            goal_user = db.query(GoalsModel).filter(user.id == GoalsModel.user_id).first()
+            if not goal_user:
+                bot.send_message(message.chat.id, "❌ Сначало вам нужно создать цель")
+                return
+            goal_user.currency_for_target += int(money)
 
         new_expense = CategoriesModel(user_id=user.id)
         setattr(new_expense, col, int(money))
@@ -233,6 +253,43 @@ def remove_expense(message):
     bot.send_message(message.chat.id, "✅ Трата была удалена")
 
 
+@bot.message_handler(commands=['goal'])
+def goal(message):
+    telegram_id = message.from_user.id
+
+    deadline_date = message.text.split()[1]
+    target_name = message.text.split()[2]
+    target_money = message.text.split()[-1]
+
+    year = deadline_date.split("-")[-1]
+    month = deadline_date.split("-")[1]
+    day = deadline_date.split("-")[0]
+
+    # format - deadline target_name target_money
+
+    deadline=datetime(int(year), int(month), int(day))
+
+    for i in target_money:
+        if i.isalpha():
+            bot.send_message(message.chat.id, "❌ не верно указана сумма")
+            return
+
+    with SessionLocal() as db:
+        user = db.query(UserModel).filter(UserModel.telegram_id == telegram_id).first()
+
+        if not user:
+            bot.send_message("❌ Я вас не знаю, введите команду /start")
+            return
+
+        Goal = GoalsModel(user_id=user.id, target=int(target_money), target_name=target_name, deadline=deadline)
+
+        db.add(Goal)
+        db.commit()
+        db.refresh(user)
+    bot.send_message(message.chat.id, "Ваша цель записана, что-бы добавить бюджет к цели используйте команду /expense")
+
+
+bot.infinity_polling(timeout=10, long_polling_timeout = 5)
 
 
 
@@ -241,5 +298,3 @@ def remove_expense(message):
 
 
 
-
-bot.infinity_polling(timeout=60, long_polling_timeout=60)
