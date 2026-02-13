@@ -1,15 +1,16 @@
-import time
-from telebot.apihelper import ApiException
-import telebot
-from unicodedata import category
-
-from database import engine, SessionLocal, Base
-from sqlalchemy.orm import Session
-from sqlalchemy.sql import func
-from data import bot_token
-from models import User as UserModel, Categories as CategoriesModel, Goals as GoalsModel
+#standart
 from datetime import date, datetime
+
+#custom
+import telebot
+from sqlalchemy.sql import func
+
+#project
+from database import engine, SessionLocal, Base
+from models import User as UserModel, Categories as CategoriesModel, Goals as GoalsModel
+from data import bot_token
 from functions import check_input
+
 
 def get_db(): # enter to db
     db = SessionLocal()
@@ -22,8 +23,8 @@ Base.metadata.create_all(bind=engine)
 
 bot = telebot.TeleBot(bot_token, parse_mode=None)
 
-categoryes = {"жкх": "hcs", "еда": "food", "транспорт": "transport", "здоровье": "pharmacy", "кредит": "credits",
-                  "развлечения": "fun", "одежда": "cloth", "подушка": "financial_cushion", "цель": "target"}
+ALL_CATEGORY = {"жкх": "hcs", "еда": "food", "транспорт": "transport", "здоровье": "pharmacy", "кредит": "credits",
+              "развлечения": "fun", "одежда": "cloth", "подушка": "financial_cushion", "цель": "target"}
 
 @bot.message_handler(commands=['start'])
 def send_welcome(message):
@@ -197,12 +198,12 @@ def expense(message):
         return
 
 
-    if category.lower() not in categoryes:
+    if category.lower() not in ALL_CATEGORY:
         bot.send_message(message.chat.id, "❌ Такой категории нету")
         return
 
 
-    col = categoryes[category.lower()]
+    col = ALL_CATEGORY[category.lower()]
 
     with SessionLocal() as db:
         user = db.query(UserModel).filter(UserModel.telegram_id == telegram_id).first()
@@ -262,7 +263,7 @@ def remove_expense(message):
         return
 
 
-    if category.lower() not in categoryes:
+    if category.lower() not in ALL_CATEGORY:
         bot.send_message(message.chat.id, "❌ я не знаю такой категории")
         return
 
@@ -278,7 +279,7 @@ def remove_expense(message):
 
         expense = db.query(CategoriesModel).filter(
             CategoriesModel.user_id == user.id,
-            getattr(CategoriesModel, categoryes[category.lower()]) == int(money),
+            getattr(CategoriesModel, ALL_CATEGORY[category.lower()]) == int(money),
             func.date(CategoriesModel.date) == target_date
         ).first()
 
@@ -317,10 +318,10 @@ def expenses(message):
 
 
         for exp in expenses_db:
-            for category in categoryes.values():
+            for category in ALL_CATEGORY.values():
                 amount = getattr(exp, category, 0)
                 if amount > 0:
-                    category_name = [x for x, j, in categoryes.items() if j == category][0]
+                    category_name = [x for x, j, in ALL_CATEGORY.items() if j == category][0]
                     message_text += f"{number}. {category_name}: {amount}; {exp.date.strftime('%d-%m-%Y')}\n"
                     number += 1
 
