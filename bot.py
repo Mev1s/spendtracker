@@ -26,6 +26,7 @@ bot = telebot.TeleBot(bot_token, parse_mode=None)
 ALL_CATEGORY = {"жкх": "hcs", "еда": "food", "транспорт": "transport", "здоровье": "pharmacy", "кредит": "credits",
               "развлечения": "fun", "одежда": "cloth", "подушка": "financial_cushion", "цель": "target"}
 
+# help text
 
 HELP_TEXT = ("🤖 /start - запустить бота\n"
              "📖/help - показать список команд\n"
@@ -38,8 +39,22 @@ HELP_TEXT = ("🤖 /start - запустить бота\n"
              "🎯/goal dd-mm-yyyy Цель Сумма - создаст цель для которой копите деньги\n"
              "📖/help_category - отобразит все категории\n")
 
+
 HELP_CATEGORY_TEXT = ("🏠 ЖКХ\n🍔 Еда\n🚗 Транспорт\n💊 Здоровье"
                       "\n💳 Кредит\n🎭 Развлечения\n👕 Одежда\n💰 Подушка\n🎯 Цель")
+
+
+# errors
+
+NOT_FOUND_USER = "❌ Я вас не знаю, введите команду /start"
+NOT_FOUND_CATEGORY = "❌ Такой категории нету"
+NOT_FOUND_GOAL = "❌ Сначало вам нужно создать цель"
+NOT_FOUND_EXPENSE = "❌ Такой траты нету"
+INCORRECT_INPUT = "❌ Не правильный ввод, попробуйте сново"
+BALANCE_LESS_THAN_ZERO = "❌ Ваш баланс не может быть меньше нуля"
+BALANCE_IS_NONE = "❌ У вас не задан баланс"
+
+
 
 @bot.message_handler(commands=['start'])
 def send_welcome(message):
@@ -77,7 +92,7 @@ def add_balance(message):
 
 
     if check_input(money) == 400:
-        bot.send_message(message.chat.id, "❌ Не правильный ввод, попробуйте сново")
+        bot.send_message(message.chat.id, INCORRECT_INPUT)
         return
 
 
@@ -86,7 +101,7 @@ def add_balance(message):
 
 
         if not user:
-            bot.send_message(message.chat.id, "❌ Сначало напишите команду /start")
+            bot.send_message(message.chat.id, NOT_FOUND_USER)
             return
 
 
@@ -109,7 +124,7 @@ def remove_balance(message):
 
 
     if check_input(money) == 400:
-        bot.send_message(message.chat.id, "❌ Не правильный ввод, попробуйте сново")
+        bot.send_message(message.chat.id, INCORRECT_INPUT)
         return
 
 
@@ -118,17 +133,17 @@ def remove_balance(message):
 
 
         if not user:
-            bot.send_message(message.chat.id, "❌ Сначало напишите команду /start")
+            bot.send_message(message.chat.id, NOT_FOUND_USER)
             return
 
 
-        if not user.current_balance:
-            bot.send_message(message.chat.id, "❌ Ваш баланс и так на 0")
+        if user.current_balance is None:
+            bot.send_message(message.chat.id, BALANCE_IS_NONE)
             return
 
 
         if user.current_balance - int(money) < 0:
-            bot.send_message(message.chat.id, "❌ Баланс не может быть отрицательным")
+            bot.send_message(message.chat.id, BALANCE_LESS_THAN_ZERO)
             return
 
 
@@ -143,17 +158,20 @@ def remove_balance(message):
 def balance(message):
     telegram_id = message.from_user.id
     with SessionLocal() as db:
-        user = db.query(UserModel).filter(UserModel.telegram_id == telegram_id).first()
+        user = (db.query(UserModel)
+                .filter(UserModel.telegram_id == telegram_id)
+                .first()
+        )
 
 
         if not user:
-            bot.send_message(message.chat.id, "❌ Я вас не знаю, введите команду /start")
+            bot.send_message(message.chat.id, NOT_FOUND_USER)
             return
 
 
         if user.current_balance is None:
             bot.send_message(message.chat.id,
-                        "❌ Я не знаю ваш баланс, введите команду /add_balance"
+                        BALANCE_IS_NONE
             )
             return
 
@@ -170,7 +188,7 @@ def set_budget(message):
 
     if check_input(budget) == 400:
         bot.send_message(message.chat.id,
-                    "❌ Не правильный ввод, попробуйте сново"
+                    INCORRECT_INPUT
         )
         return
 
@@ -184,7 +202,7 @@ def set_budget(message):
 
         if not user:
             bot.send_message(message.chat.id,
-                        "❌ Я вас не знаю, введите команду /start"
+                        NOT_FOUND_USER
             )
             return
 
@@ -202,7 +220,7 @@ def set_budget(message):
 def expense(message):
     if len(message.text.split()) <= 1:
         bot.send_message(message.chat.id,
-                    "❌ Не правильный ввод, попробуйте снова"
+                    INCORRECT_INPUT
         )
         return
 
@@ -214,13 +232,13 @@ def expense(message):
 
     if check_input(money) == 400:
         bot.send_message(message.chat.id,
-                    "❌ Не правильный ввод, попробуйте сново"
+                    INCORRECT_INPUT
         )
         return
 
 
     if category.lower() not in ALL_CATEGORY:
-        bot.send_message(message.chat.id, "❌ Такой категории нету")
+        bot.send_message(message.chat.id, NOT_FOUND_CATEGORY)
         return
 
 
@@ -235,19 +253,19 @@ def expense(message):
 
         if not user:
             bot.send_message(message.chat.id,
-                        "❌ Я вас не знаю, введите команду /start"
+                        NOT_FOUND_USER
             )
             return
 
 
         if user.current_balance is None:
-            bot.send_message(message.chat.id, "❌ У вас не задан баланс")
+            bot.send_message(message.chat.id, BALANCE_IS_NONE)
             return
 
 
         if user.current_balance - int(money) < 0:
             bot.send_message(message.chat.id,
-                        "❌ Ваш баланс сейчас ниже траты"
+                        BALANCE_LESS_THAN_ZERO
             )
             return
 
@@ -261,7 +279,7 @@ def expense(message):
 
             if not goal_user:
                 bot.send_message(message.chat.id,
-                            "❌ Сначало вам нужно создать цель"
+                            NOT_FOUND_GOAL
                 )
                 return
 
@@ -299,13 +317,13 @@ def remove_expense(message):
 
     if check_input(money) == 400:
         bot.send_message(message.chat.id,
-                    "❌ Не правильный ввод, попробуйте сново"
+                    INCORRECT_INPUT
         )
         return
 
 
     if category.lower() not in ALL_CATEGORY:
-        bot.send_message(message.chat.id, "❌ я не знаю такой категории")
+        bot.send_message(message.chat.id, NOT_FOUND_CATEGORY)
         return
 
 
@@ -317,7 +335,7 @@ def remove_expense(message):
 
 
         if not user:
-            bot.send_message("❌ Я вас не знаю, введите команду /start")
+            bot.send_message(message.chat.id, NOT_FOUND_USER)
             return
 
 
@@ -326,12 +344,12 @@ def remove_expense(message):
                         CategoriesModel.user_id == user.id,
                         getattr(CategoriesModel, ALL_CATEGORY[category.lower()]) == int(money),
                         func.date(CategoriesModel.date) == target_date
-        ).first()
+                ).first()
         )
 
 
         if not expense:
-            bot.send_message(message.chat.id, "❌ Такой траты нету")
+            bot.send_message(message.chat.id, NOT_FOUND_EXPENSE)
             return
 
 
@@ -344,6 +362,7 @@ def remove_expense(message):
 
 
     bot.send_message(message.chat.id, "✅ Трата была удалена")
+
 
 @bot.message_handler(commands=['expenses'])
 def expenses(message):
@@ -366,13 +385,13 @@ def expenses(message):
 
         if not user:
             bot.send_message(message.chat.id,
-                        "❌ Я вас не знаю, введите /start"
+                        NOT_FOUND_USER
             )
             return
 
 
         if not expenses_db:
-            bot.send_message(message.chat.id, "❌ У вас нету трат")
+            bot.send_message(message.chat.id, NOT_FOUND_EXPENSE)
             return
 
 
@@ -410,7 +429,7 @@ def goal(message):
 
     for i in target_money:
         if i.isalpha():
-            bot.send_message(message.chat.id, "❌ не верно указана сумма")
+            bot.send_message(message.chat.id, INCORRECT_INPUT)
             return
 
 
@@ -422,7 +441,7 @@ def goal(message):
 
 
         if not user:
-            bot.send_message("❌ Я вас не знаю, введите команду /start")
+            bot.send_message(message.chat.id, NOT_FOUND_USER)
             return
 
 
@@ -438,6 +457,24 @@ def goal(message):
 
 
     bot.send_message(message.chat.id, "Ваша цель записана, что-бы добавить бюджет к цели используйте команду /expense")
+
+
+@bot.message_handler(commands=['my_goals'])
+def my_goals(message):
+    telegram_id = message.from_user.id
+
+
+    with SessionLocal() as db:
+        user = (db.query(UserModel)
+                .filter(UserModel.telegram_id == telegram_id)
+                .first()
+                )
+
+
+        if not user:
+            bot.send_message(message.chat.id, NOT_FOUND_USER)
+            return
+
 
 
 bot.infinity_polling(timeout=5, long_polling_timeout = 1)
