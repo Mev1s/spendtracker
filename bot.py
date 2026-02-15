@@ -44,7 +44,7 @@ HELP_CATEGORY_TEXT = ("🏠 ЖКХ\n🍔 Еда\n🚗 Транспорт\n💊 �
                       "\n💳 Кредит\n🎭 Развлечения\n👕 Одежда\n💰 Подушка\n🎯 Цель")
 
 
-# errors
+# errors messages
 
 NOT_FOUND_USER = "❌ Я вас не знаю, введите команду /start"
 NOT_FOUND_CATEGORY = "❌ Такой категории нету"
@@ -53,6 +53,17 @@ NOT_FOUND_EXPENSE = "❌ Такой траты нету"
 INCORRECT_INPUT = "❌ Не правильный ввод, попробуйте сново"
 BALANCE_LESS_THAN_ZERO = "❌ Ваш баланс не может быть меньше нуля"
 BALANCE_IS_NONE = "❌ У вас не задан баланс"
+
+
+# successful  messages
+
+BALANCE_REPLENISHED = "✅ Ваш баланс пополнен"
+BALANCE_REDUCED = "✅ Ваш баланс уменьшен"
+MONTH_SAVE_BALANCE = "✅ Я сохранил ваш баланс. Если что-то измениться, напишите команду сново."
+EXPENSE_SAVE = "✅ Трата сохранена"
+EXPENSE_DELETE = "✅ Трата удалена"
+GOAL_SAVE = "✅ Ваша цель записана, что-бы добавить бюджет к цели используйте команду /expense"
+
 
 
 
@@ -73,6 +84,7 @@ def send_welcome(message):
 
 
     bot.send_message(message.chat.id, message_text)
+
 
 @bot.message_handler(commands=['help'])
 def help_info(message):
@@ -115,7 +127,8 @@ def add_balance(message):
         db.refresh(user)
 
 
-    bot.send_message(message.chat.id, f"✅ Ваш баланс пополнен. Сейчас у вас {user.current_balance}")
+    bot.send_message(message.chat.id, BALANCE_REPLENISHED)
+
 
 @bot.message_handler(commands=['remove_balance'])
 def remove_balance(message):
@@ -152,7 +165,8 @@ def remove_balance(message):
         db.refresh(user)
 
 
-    bot.send_message(message.chat.id, f"✅ Ваш баланс уменьшен на {money}")
+    bot.send_message(message.chat.id, BALANCE_REDUCED)
+
 
 @bot.message_handler(commands=['balance'])
 def balance(message):
@@ -179,6 +193,7 @@ def balance(message):
     bot.send_message(message.chat.id,
                 f"Текущий баланс: {user.current_balance}"
     )
+
 
 @bot.message_handler(commands=['set_budget'])
 def set_budget(message):
@@ -212,9 +227,8 @@ def set_budget(message):
         db.refresh(user)
 
 
-    bot.send_message(message.chat.id,
-                "✅ Я сохранил ваш баланс. Если что-то измениться, напишите команду сново."
-    )
+    bot.send_message(message.chat.id, )
+
 
 @bot.message_handler(commands=['expense'])
 def expense(message):
@@ -297,7 +311,7 @@ def expense(message):
         db.refresh(user)
 
 
-    bot.send_message(message.chat.id, "✅ Трата сохранена")
+    bot.send_message(message.chat.id, EXPENSE_SAVE)
 
 
 @bot.message_handler(commands=['remove_expense'])
@@ -361,7 +375,7 @@ def remove_expense(message):
         db.refresh(user)
 
 
-    bot.send_message(message.chat.id, "✅ Трата была удалена")
+    bot.send_message(message.chat.id, EXPENSE_DELETE)
 
 
 @bot.message_handler(commands=['expenses'])
@@ -456,13 +470,13 @@ def goal(message):
         db.refresh(user)
 
 
-    bot.send_message(message.chat.id, "Ваша цель записана, что-бы добавить бюджет к цели используйте команду /expense")
+    bot.send_message(message.chat.id, GOAL_SAVE)
 
 
 @bot.message_handler(commands=['my_goals'])
 def my_goals(message):
     telegram_id = message.from_user.id
-
+    message_text = ""
 
     with SessionLocal() as db:
         user = (db.query(UserModel)
@@ -474,6 +488,16 @@ def my_goals(message):
         if not user:
             bot.send_message(message.chat.id, NOT_FOUND_USER)
             return
+
+        goal_user = (db.query(GoalsModel)
+                     .filter(user.id == GoalsModel.user_id)
+                     .all()
+        )
+
+        for user_goal in goal_user:
+            message_text += f"{user_goal.target_name}: {user_goal.currency_for_target}/{user_goal.target}\n"
+
+        bot.send_message(message.chat.id, message_text)
 
 
 
