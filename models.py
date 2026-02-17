@@ -24,6 +24,7 @@ class Categories(Base):
     fun = Column(Integer, default=0)
     cloth = Column(Integer, default=0)
     financial_cushion = Column(Integer, default=0)
+    target = Column(Integer, default=0)
     date = Column(DateTime, default=func.now())
 
 class Goals(Base):
@@ -33,6 +34,7 @@ class Goals(Base):
     user_id = Column(Integer, ForeignKey('users.id'))
 
     target = Column(Integer, default=0)
+    target_name = Column(String, default="")
     currency_for_target = Column(Integer, default=0)
     deadline = Column(DateTime, nullable=True)
 

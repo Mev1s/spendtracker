@@ -68,7 +68,7 @@ GOAL_SAVE = "✅ Ваша цель записана, что-бы добавит�
 
 
 @bot.message_handler(commands=['start'])
-def send_welcome(message):
+async def send_welcome(message):
     telegram_id = message.from_user.id
     message_text = "Привет, для просмотра всех команд напишите команду /help"
 
