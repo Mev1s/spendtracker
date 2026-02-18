@@ -1,11 +1,15 @@
+import asyncio
+
 
 # custom
 from fastapi import FastAPI, HTTPException, Path, Query, Depends, Body
 from typing import Optional, List, Dict, Union
 from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select
 
 # project
-from database import engine, SessionLocal, Base
+from database import engine, SessionLocal, Base, AsyncSessionLocal
 from models import User as UserModel, Categories as CategoriesModel, Goals as GoalsModel
 
 from schemas import (
@@ -25,6 +29,8 @@ from schemas import (
 
 app = FastAPI()
 
+# sync
+
 def get_db():
     db = SessionLocal()
     try:
@@ -32,26 +38,34 @@ def get_db():
     finally:
         db.close()
 
+# async
+
+async def get_db():
+    async with AsyncSessionLocal() as db:
+        yield db
 
 # get requests
 
 @app.get("/users", response_model=List[UserResponseSchema])
-def get_users(db: Session = Depends(get_db)) -> List[UserResponseSchema]:
-    users = db.query(UserModel).all()
+async def get_users(db: AsyncSession = Depends(get_db)) -> List[UserResponseSchema]:
+    result = await db.execute(select(UserModel))
+    users = result.scalars().all()
     return users
 
 
 @app.get("/users/{user_id}", response_model=UserResponseSchema)
-def read_user(user_id: int, db: Session = Depends(get_db)) -> UserResponseSchema:
-    db_user = db.query(UserModel).filter(UserModel.id == user_id).first()
+async def read_user(user_id: int, db: AsyncSession = Depends(get_db)) -> UserResponseSchema:
+    result = await db.execute(select(UserModel).where(UserModel.id == user_id))
+    db_user = result.scalar_one_or_none()
     if not db_user:
         raise HTTPException(status_code=404, detail="User not found")
     return db_user
 
 @app.get("/categories", response_model=List[CategoryResponseSchema])
-def get_categories(db: Session = Depends(get_db)) -> List[CategoryResponseSchema]:
-    categories_db = db.query(CategoriesModel).all()
-    return categories_db
+async def get_categories(db: AsyncSession = Depends(get_db)) -> List[CategoryResponseSchema]:
+    result = await db.execute(select(CategoriesModel))
+    db_categories = result.scalars().all()
+    return db_categories
 
 
 # post requests
@@ -99,5 +113,3 @@ def delete_goal(id: int, db: Session = Depends(get_db)) -> GoalResponseSchema:
     db.commit()
 
     return db_goal
-
-

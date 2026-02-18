@@ -37,9 +37,3 @@ class Goals(Base):
     target_name = Column(String, default="")
     currency_for_target = Column(Integer, default=0)
     deadline = Column(DateTime, nullable=True)
-
-
-
-
-
-

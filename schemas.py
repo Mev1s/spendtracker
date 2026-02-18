@@ -58,5 +58,3 @@ class GoalResponse(GoalBase):
 
     class Config:
         from_attributes = True
-
-
