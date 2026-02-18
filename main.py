@@ -101,8 +101,3 @@ def delete_goal(id: int, db: Session = Depends(get_db)) -> GoalResponseSchema:
     return db_goal
 
 
-
-
-
-
-
