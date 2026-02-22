@@ -1,15 +1,11 @@
-import asyncio
-
-
 # custom
 from fastapi import FastAPI, HTTPException, Path, Query, Depends, Body
 from typing import Optional, List, Dict, Union
-from sqlalchemy.orm import Session
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 
 # project
-from database import engine, SessionLocal, Base, AsyncSessionLocal
+from database import AsyncSessionLocal
 from models import User as UserModel, Categories as CategoriesModel, Goals as GoalsModel
 
 from schemas import (
@@ -29,17 +25,6 @@ from schemas import (
 
 app = FastAPI()
 
-# sync
-
-def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
-
-# async
-
 async def get_db():
     async with AsyncSessionLocal() as db:
         yield db
@@ -47,22 +32,35 @@ async def get_db():
 # get requests
 
 @app.get("/users", response_model=List[UserResponseSchema])
-async def get_users(db: AsyncSession = Depends(get_db)) -> List[UserResponseSchema]:
+async def get_users(
+        db: AsyncSession = Depends(get_db)
+) -> List[UserResponseSchema]:
+
     result = await db.execute(select(UserModel))
     users = result.scalars().all()
     return users
 
 
 @app.get("/users/{user_id}", response_model=UserResponseSchema)
-async def read_user(user_id: int, db: AsyncSession = Depends(get_db)) -> UserResponseSchema:
-    result = await db.execute(select(UserModel).where(UserModel.id == user_id))
+async def read_user(
+        user_id: int,
+        db: AsyncSession = Depends(get_db)
+) -> UserResponseSchema:
+
+    result = await db.execute(
+        select(UserModel).where(UserModel.id == user_id)
+    )
+
     db_user = result.scalar_one_or_none()
     if not db_user:
         raise HTTPException(status_code=404, detail="User not found")
     return db_user
 
 @app.get("/categories", response_model=List[CategoryResponseSchema])
-async def get_categories(db: AsyncSession = Depends(get_db)) -> List[CategoryResponseSchema]:
+async def get_categories(
+        db: AsyncSession = Depends(get_db)
+) -> List[CategoryResponseSchema]:
+
     result = await db.execute(select(CategoriesModel))
     db_categories = result.scalars().all()
     return db_categories
@@ -71,45 +69,69 @@ async def get_categories(db: AsyncSession = Depends(get_db)) -> List[CategoryRes
 # post requests
 
 @app.post("/users", response_model=UserResponseSchema)
-def create_users(user: UserCreateSchema, db: Session = Depends(get_db)) -> UserResponseSchema:
+async def create_users(
+        user: UserCreateSchema, db: AsyncSession = Depends(get_db)
+) -> UserResponseSchema:
+
     db_user = UserModel(**user.dict())
     db.add(db_user)
-    db.commit()
-    db.refresh(db_user)
+    await db.commit()
+    await db.refresh(db_user)
     return db_user
 
 @app.post("/goal", response_model=GoalResponseSchema)
-def post_goal(goal: GoalCreateSchema, db: Session = Depends(get_db)):
+async def post_goal(
+        goal: GoalCreateSchema, db: AsyncSession = Depends(get_db)
+) -> GoalResponseSchema:
+
     db_goal = GoalsModel(**goal.dict())
-    user = db.query(UserModel).filter(UserModel.id == db_goal.user_id).first()
+
+    req = await db.execute(
+        select(UserModel)
+        .where(UserModel.id == db_goal.user_id)
+    )
+    user = req.scalar_one_or_none()
+
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
+
     db.add(db_goal)
-    db.commit()
-    db.refresh(db_goal)
+    await db.commit()
+    await db.refresh(db_goal)
     return db_goal
 
 
 # delete requests
 
 @app.delete("/user/delete/{id}", response_model=UserResponseSchema)
-def delete_user(id: int, db: Session = Depends(get_db)) -> UserResponseSchema:
-    db_user = db.query(UserModel).filter(UserModel.id == id).first()
+async def delete_user(
+        id: int,
+        db: AsyncSession = Depends(get_db)
+) -> UserResponseSchema:
+
+    req = await db.execute(select(UserModel).where(UserModel.id == id))
+    db_user = req.scalar_one_or_none()
     if not db_user:
         raise HTTPException(status_code=404, detail="User not found")
 
-    db.delete(db_user)
-    db.commit()
+    await db.delete(db_user)
+    await db.commit()
 
     return db_user
 
 @app.delete("/goal/delete/{id}", response_model=GoalResponseSchema)
-def delete_goal(id: int, db: Session = Depends(get_db)) -> GoalResponseSchema:
-    db_goal = db.query(GoalsModel).filter(GoalsModel.id == id).first()
+async def delete_goal(
+        id: int,
+        db: AsyncSession = Depends(get_db)
+) -> GoalResponseSchema:
+
+    req = await db.execute(select(GoalsModel).where(GoalsModel.id == id))
+    db_goal = req.scalar_one_or_none()
+
     if not db_goal:
         raise HTTPException(status_code=404, detail="Goal not found")
 
-    db.delete(db_goal)
-    db.commit()
+    await db.delete(db_goal)
+    await db.commit()
 
     return db_goal
