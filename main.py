@@ -5,7 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 
 # project
-from database import AsyncSessionLocal
+from database import get_db
 from models import User as UserModel, Categories as CategoriesModel, Goals as GoalsModel
 
 from schemas import (
@@ -24,10 +24,6 @@ from schemas import (
 )
 
 app = FastAPI()
-
-async def get_db():
-    async with AsyncSessionLocal() as db:
-        yield db
 
 # get requests
 

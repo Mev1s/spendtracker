@@ -4,15 +4,6 @@ from httpx import AsyncClient, ASGITransport
 from main import app
 
 
-@pytest.fixture
-async def client():
-    async with AsyncClient(
-            transport=ASGITransport(app=app),
-            base_url="http://test"
-                     ) as client:
-        yield client
-
-
 async def test_get_users(client: AsyncClient):
     response = await client.get("/users")
     assert response.status_code == 200
@@ -23,3 +14,15 @@ async def test_get_users(client: AsyncClient):
             assert key in user
             if key not in ("money_per_month", "current_balance"):
                 assert user.get(key) is not None
+
+async def test_get_users_by_id(client: AsyncClient):
+    users = await client.get("/users")
+    assert users.status_code == 200
+    response = users.json()
+    assert isinstance(response, list)
+    for user in response:
+        if "id" in user:
+            response = await client.get(f"/users/{user["id"]}")
+            assert response.status_code == 200
+            response = response.json()
+            assert isinstance(response, dict)
