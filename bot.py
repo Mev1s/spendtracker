@@ -19,6 +19,7 @@ def get_db(): # enter to db
     finally:
         db.close()
 
+
 Base.metadata.create_all(bind=engine)
 
 bot = telebot.TeleBot(bot_token, parse_mode=None)
