@@ -68,11 +68,9 @@ async def get_categories(
 async def create_users(
         user: UserCreateSchema, db: AsyncSession = Depends(get_db)
 ) -> UserResponseSchema:
-
     db_user = UserModel(**user.dict())
     db.add(db_user)
     await db.commit()
-    await db.refresh(db_user)
     return db_user
 
 @app.post("/goal", response_model=GoalResponseSchema)
@@ -93,7 +91,6 @@ async def post_goal(
 
     db.add(db_goal)
     await db.commit()
-    await db.refresh(db_goal)
     return db_goal
 
 

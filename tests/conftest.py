@@ -17,15 +17,9 @@ async def engine():
 
     # Create tables
     async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.drop_all)
         await conn.run_sync(Base.metadata.create_all)
 
     yield engine
-
-    # Cleanup
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.drop_all)
-    await engine.dispose()
 
 
 @pytest.fixture(scope="function")
@@ -37,10 +31,8 @@ async def session(engine):
 
     async with async_session_maker() as session:
         # Начинаем транзакцию
-        async with session.begin():
+        async with session:
             yield session
-        # Откатываем транзакцию после теста
-        await session.rollback()
 
 
 @pytest.fixture(scope="function")
