@@ -1,11 +1,7 @@
-import asyncio
-
-import faker
-import pytest
 from httpx import AsyncClient, ASGITransport
-from main import app
 from faker import Faker
 import random
+import datetime
 
 fake = Faker()
 
@@ -76,5 +72,19 @@ async def test_post_goal_users(client: AsyncClient):
             assert response["target"] == goal_json["target"]
             assert response["target_name"] == goal_json["target_name"]
             assert response["currency_for_target"] == goal_json["currency_for_target"]
-            assert response["deadline"] == goal_json["deadline"]
+            assert response["deadline"][:10] == goal_json["deadline"][:10]
+
+async def test_delete_user(client: AsyncClient):
+    users = await client.get("/users")
+    users = users.json()
+
+    for user in users:
+        if "id" in user:
+            user_id = user["id"]
+            response = await client.delete(f"/user/delete/{user_id}")
+            assert response.status_code == 200
+            response = response.json()
+            assert isinstance(response, dict)
+            assert response["id"] == user_id
+
 

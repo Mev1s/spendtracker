@@ -1,7 +1,7 @@
 from typing import Optional, Annotated
-from pydantic import BaseModel, Field
-from sqlalchemy import func
-from datetime import date, datetime
+from pydantic import BaseModel, Field, ConfigDict
+from sqlalchemy import func, DateTime
+from datetime import datetime
 
 
 class UserBase(BaseModel):
@@ -44,10 +44,10 @@ class CategoryResponse(CategoryBase):
 
 class GoalBase(BaseModel):
     user_id: int
-    target: Annotated[int, Field(default=None)]
-    target_name: Annotated[str, Field(default=None)]
-    currency_for_target: Annotated[int, Field(default=None)]
-    deadline: Annotated[date, Field(default=None)]
+    target: Annotated[int, Field(...)]
+    target_name: Annotated[str, Field(...)]
+    currency_for_target: Annotated[int, Field(default=0)]
+    deadline: Annotated[datetime, Field(default=None)]
 
 class GoalCreate(GoalBase):
     pass
@@ -55,5 +55,4 @@ class GoalCreate(GoalBase):
 class GoalResponse(GoalBase):
     id: int
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)

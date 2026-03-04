@@ -62,6 +62,16 @@ async def get_categories(
     return db_categories
 
 
+@app.get("/goals", response_model=List[GoalResponseSchema])
+async def get_goals(
+        db: AsyncSession = Depends(get_db)
+) -> List[GoalResponseSchema]:
+
+    result = await db.execute(select(GoalsModel))
+    db_goals = result.scalars().all()
+    return db_goals
+
+
 # post requests
 
 @app.post("/users", response_model=UserResponseSchema)
@@ -88,6 +98,13 @@ async def post_goal(
 
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
+
+
+    goal = await db.scalar(
+        select(GoalsModel).where(GoalsModel.id == db_goal.user_id)
+    )
+    if goal:
+        raise HTTPException(status_code=400, detail="Goal already exists")
 
     db.add(db_goal)
     await db.commit()

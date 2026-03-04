@@ -31,9 +31,9 @@ class Goals(Base):
     __tablename__ = 'goals'
 
     id = Column(Integer, primary_key=True)
-    user_id = Column(Integer, ForeignKey('users.id'))
+    user_id = Column(Integer, ForeignKey('users.id', ondelete='CASCADE'))
 
     target = Column(Integer, default=0)
     target_name = Column(String, default="")
     currency_for_target = Column(Integer, default=0)
-    deadline = Column(DateTime, nullable=True)
+    deadline = Column(DateTime(timezone=True), nullable=True)
