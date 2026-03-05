@@ -20,6 +20,7 @@ async def engine():
         await conn.run_sync(Base.metadata.create_all)
 
     yield engine
+    await engine.dispose()
 
 
 @pytest.fixture(scope="function")
