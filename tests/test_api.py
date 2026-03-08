@@ -2,43 +2,14 @@ from httpx import AsyncClient, ASGITransport
 from faker import Faker
 import random
 import datetime
+import pytest
 
 fake = Faker()
 
 
-# get tests
-
-async def test_get_users(client: AsyncClient):
-    response = await client.get("/users")
-    assert response.status_code == 200
-    response = response.json()
-    assert isinstance(response, list)
-    for user in response:
-        for key in ("id",
-                    "username",
-                    "telegram_id",
-                    "money_per_month",
-                    "current_balance"
-                ):
-            assert key in user
-            if key not in ("money_per_month", "current_balance"):
-                assert user.get(key) is not None
-
-async def test_get_users_by_id(client: AsyncClient):
-    users = await client.get("/users")
-    assert users.status_code == 200
-    response = users.json()
-    assert isinstance(response, list)
-    for user in response:
-        if "id" in user:
-            response = await client.get(f"/users/{user["id"]}")
-            assert response.status_code == 200
-            response = response.json()
-            assert isinstance(response, dict)
-
-
 # post tests
 
+@pytest.mark.order(1)
 async def test_post_user(client: AsyncClient):
     user_json = {"username": f"{fake.user_name()}",
                  "telegram_id": random.randint(1000*1000, 80*50000),
@@ -56,6 +27,7 @@ async def test_post_user(client: AsyncClient):
     assert response["money_per_month"] == user_json["money_per_month"]
     assert response["current_balance"] == user_json["current_balance"]
 
+@pytest.mark.order(2)
 async def test_post_goal_users(client: AsyncClient):
     users = await client.get("/users")
     users = users.json()
@@ -80,9 +52,53 @@ async def test_post_goal_users(client: AsyncClient):
             assert response["deadline"][:10] == goal_json["deadline"][:10]
 
 
-# delete tests
+# get tests
+
+@pytest.mark.order(3)
+async def test_get_users(client: AsyncClient):
+    response = await client.get("/users")
+    assert response.status_code == 200
+    response = response.json()
+    assert isinstance(response, list)
+    for user in response:
+        for key in ("id",
+                    "username",
+                    "telegram_id",
+                    "money_per_month",
+                    "current_balance"
+                ):
+            assert key in user
+            if key not in ("money_per_month", "current_balance"):
+                assert user.get(key) is not None
+
+@pytest.mark.order(4)
+async def test_get_users_by_id(client: AsyncClient):
+    users = await client.get("/users")
+    assert users.status_code == 200
+    response = users.json()
+    assert isinstance(response, list)
+    for user in response:
+        if "id" in user:
+            response = await client.get(f"/users/{user["id"]}")
+            assert response.status_code == 200
+            response = response.json()
+            assert isinstance(response, dict)
 
 
+@pytest.mark.order(5)
+async def test_get_categories(client: AsyncClient):
+    categories = await client.get("/categories")
+    assert categories.status_code == 200
+    categories = categories.json()
+    assert isinstance(categories, list)
+
+    keys = ["hcs", "food", "transport", "pharmacy", "credits", "fun", " cloth", "financial_cushion", "target", "date", "id", "user_id"]
+
+    for category in categories:
+        for key in keys:
+            assert key in category
+
+@pytest.mark.order(6)
 async def test_delete_goals(client: AsyncClient):
     goals = await client.get("/goals")
     goals = goals.json()
@@ -100,7 +116,7 @@ async def test_delete_goals(client: AsyncClient):
             assert response["currency_for_target"] == goal["currency_for_target"]
             assert response["deadline"][:10] == goal["deadline"][:10]
 
-
+@pytest.mark.order(7)
 async def test_delete_user(client: AsyncClient):
     users = await client.get("/users")
     users = users.json()
@@ -118,6 +134,17 @@ async def test_delete_user(client: AsyncClient):
             assert response["telegram_id"] == user["telegram_id"]
             assert response["money_per_month"] == user["money_per_month"]
             assert response["current_balance"] == user["current_balance"]
+
+# test errors
+
+@pytest.mark.order(8)
+async def test_get_user_by_id_error_not_found(client: AsyncClient):
+    id = random.randint(1000000, 1000000*5)
+    response = await client.get(f"/users/{id}")
+    assert response.status_code == 404
+    response = response.json()
+
+    assert response["detail"] == "User not found"
 
 
 

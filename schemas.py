@@ -30,14 +30,14 @@ class CategoryBase(BaseModel):
     cloth: Annotated[int, Field(default=None)]
     financial_cushion: Annotated[int, Field(default=None)]
     target: Annotated[int, Field(default=None)]
-    date: Annotated[datetime, Field(default=func.now())]
+    date: Annotated[datetime, Field(default=datetime.utcnow())]
+    user_id: int
 
 class CategoryCreate(CategoryBase):
     pass
 
 class CategoryResponse(CategoryBase):
     id: int
-    user_id: int
 
     class Config:
         from_attributes = True

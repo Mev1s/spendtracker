@@ -23,7 +23,7 @@ from schemas import (
     GoalResponse as GoalResponseSchema
 )
 
-app = FastAPI()
+app = FastAPI(debug=True)
 
 # get requests
 
@@ -38,7 +38,7 @@ async def get_users(
 
 
 @app.get("/users/{user_id}", response_model=UserResponseSchema)
-async def read_user(
+async def get_user_by_id(
         user_id: int,
         db: AsyncSession = Depends(get_db)
 ) -> UserResponseSchema:
@@ -82,6 +82,17 @@ async def create_users(
     db.add(db_user)
     await db.commit()
     return db_user
+
+
+@app.post("/categories", response_model=CategoryResponseSchema)
+async def create_categories(
+        category: CategoryCreateSchema, db: AsyncSession = Depends(get_db)
+) -> CategoryResponseSchema:
+    category_model = CategoriesModel(**category.dict())
+    db.add(category_model)
+    await db.commit()
+    return category_model
+
 
 @app.post("/goal", response_model=GoalResponseSchema)
 async def post_goal(

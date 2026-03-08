@@ -1,3 +1,5 @@
+from datetime import timezone
+
 from sqlalchemy import Column, Integer, String, ForeignKey, DateTime, BigInteger, Float
 from sqlalchemy.sql import func
 from database import Base
@@ -25,7 +27,7 @@ class Categories(Base):
     cloth = Column(Integer, default=0)
     financial_cushion = Column(Integer, default=0)
     target = Column(Integer, default=0)
-    date = Column(DateTime, default=func.now())
+    date = Column(DateTime, server_default=func.now())
 
 class Goals(Base):
     __tablename__ = 'goals'

@@ -20,6 +20,10 @@ async def engine():
         await conn.run_sync(Base.metadata.create_all)
 
     yield engine
+
+    # Clean up after test
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.drop_all)
     await engine.dispose()
 
 
@@ -32,8 +36,13 @@ async def session(engine):
 
     async with async_session_maker() as session:
         # Начинаем транзакцию
-        async with session:
+        await session.begin()
+
+        try:
             yield session
+        finally:
+            # Откатываем транзакцию после теста
+            await session.rollback()
 
 
 @pytest.fixture(scope="function")
