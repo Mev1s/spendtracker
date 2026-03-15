@@ -21,11 +21,6 @@ async def engine():
 
     yield engine
 
-    # Clean up after test
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.drop_all)
-    await engine.dispose()
-
 
 @pytest.fixture(scope="function")
 async def session(engine):
@@ -61,4 +56,3 @@ async def client(session):
     ) as client:
         yield client
 
-    app.dependency_overrides.clear()

@@ -52,9 +52,37 @@ async def test_post_goal_users(client: AsyncClient):
             assert response["deadline"][:10] == goal_json["deadline"][:10]
 
 
+@pytest.mark.order(3)
+async def test_post_categories(client: AsyncClient):
+    response = await client.get("/users")
+    response = response.json()
+    print(response)
+    assert isinstance(response, list)
+    for user in response:
+        if "id" in user:
+            categories_json = {
+                "hcs": random.randint(0, 1000000000),
+                "food": random.randint(0, 1000000000),
+                "transport": random.randint(0, 1000000000),
+                "pharmacy": random.randint(0, 1000000000),
+                "credits": random.randint(0, 1000000000),
+                "fun": random.randint(0, 1000000000),
+                "cloth": random.randint(0, 1000000000),
+                "financial_cushion": random.randint(0, 1000000000),
+                "target": random.randint(0, 1000000000),
+                "date": datetime.datetime.utcnow(),
+                "user_id": user["id"]
+            }
+
+            response_category = await client.post("/categories", json=categories_json)
+
+            assert response_category.status_code == 200
+            response_category = response_category.json()
+            assert isinstance(response_category, dict)
+
 # get tests
 
-@pytest.mark.order(3)
+@pytest.mark.order(4)
 async def test_get_users(client: AsyncClient):
     response = await client.get("/users")
     assert response.status_code == 200
@@ -71,7 +99,7 @@ async def test_get_users(client: AsyncClient):
             if key not in ("money_per_month", "current_balance"):
                 assert user.get(key) is not None
 
-@pytest.mark.order(4)
+@pytest.mark.order(5)
 async def test_get_users_by_id(client: AsyncClient):
     users = await client.get("/users")
     assert users.status_code == 200
@@ -85,7 +113,7 @@ async def test_get_users_by_id(client: AsyncClient):
             assert isinstance(response, dict)
 
 
-@pytest.mark.order(5)
+@pytest.mark.order(6)
 async def test_get_categories(client: AsyncClient):
     categories = await client.get("/categories")
     assert categories.status_code == 200
@@ -98,7 +126,7 @@ async def test_get_categories(client: AsyncClient):
         for key in keys:
             assert key in category
 
-@pytest.mark.order(6)
+@pytest.mark.order(7)
 async def test_delete_goals(client: AsyncClient):
     goals = await client.get("/goals")
     goals = goals.json()
@@ -116,7 +144,7 @@ async def test_delete_goals(client: AsyncClient):
             assert response["currency_for_target"] == goal["currency_for_target"]
             assert response["deadline"][:10] == goal["deadline"][:10]
 
-@pytest.mark.order(7)
+@pytest.mark.order(8)
 async def test_delete_user(client: AsyncClient):
     users = await client.get("/users")
     users = users.json()
@@ -137,7 +165,7 @@ async def test_delete_user(client: AsyncClient):
 
 # test errors
 
-@pytest.mark.order(8)
+@pytest.mark.order(9)
 async def test_get_user_by_id_error_not_found(client: AsyncClient):
     id = random.randint(1000000, 1000000*5)
     response = await client.get(f"/users/{id}")

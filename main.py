@@ -3,6 +3,7 @@ from fastapi import FastAPI, HTTPException, Path, Query, Depends, Body
 from typing import Optional, List, Dict, Union
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
+from sqlalchemy.sql.functions import user
 
 # project
 from database import get_db
@@ -88,6 +89,15 @@ async def create_users(
 async def create_categories(
         category: CategoryCreateSchema, db: AsyncSession = Depends(get_db)
 ) -> CategoryResponseSchema:
+    db_user = await db.execute(
+                                select(UserModel)
+                               .where(UserModel.id == category.user_id)
+    )
+    db_user = db_user.scalar_one_or_none()
+
+    if not db_user:
+        raise HTTPException(status_code=404, detail="User not found")
+
     category_model = CategoriesModel(**category.dict())
     db.add(category_model)
     await db.commit()

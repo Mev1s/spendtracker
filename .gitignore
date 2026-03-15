@@ -1,0 +1,6 @@
+# folders
+htmlcov/
+.venv/
+
+#files
+.coverage
