@@ -1,6 +1,7 @@
 # folders
 htmlcov/
 .venv/
+.idea/
 
 #files
 .coverage
